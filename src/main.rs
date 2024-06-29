@@ -1,9 +1,9 @@
-use vecs::vec2::Vec2f;
+use vecs::vec2::Vec2i;
 
 pub mod model;
 pub mod rasterizer;
-mod window;
 pub mod vecs;
+mod window;
 
 fn main() {
     let mut win = window::Window::new(800, 800);
@@ -16,16 +16,16 @@ fn main() {
         win.rasterizer.draw_wireframe(&model);
 
         win.rasterizer.draw_triangle(
-            &Vec2f { x: 10, y: 70 },
-            &Vec2f { x: 50, y: 160 },
-            &Vec2f { x: 70, y: 80 },
+            &Vec2i { x: 10, y: 70 },
+            &Vec2i { x: 50, y: 160 },
+            &Vec2i { x: 70, y: 80 },
             &0xff_ff_ff,
         );
 
         win.rasterizer.fill_triangle(
-            &Vec2f { x: 180, y: 50 },
-            &Vec2f { x: 150, y: 1 },
-            &Vec2f { x: 70, y: 180 },
+            &Vec2i { x: 180, y: 50 },
+            &Vec2i { x: 150, y: 1 },
+            &Vec2i { x: 70, y: 180 },
             &0xff_ff_ff,
         );
 
