@@ -1,15 +1,7 @@
-use crate::model;
-
-pub struct Vec2f {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Vec2f {
-    pub fn new(x: i32, y: i32) -> Vec2f {
-        Vec2f { x, y }
-    }
-}
+use crate::{
+    model,
+    vecs::{vec2::Vec2f, vec3::Vec3f},
+};
 
 pub struct Rasterizer {
     pub width: usize,
@@ -76,6 +68,7 @@ impl Rasterizer {
             }
         }
     }
+
     pub fn draw_wireframe(&mut self, model: &model::Model) {
         for i in 0..model.nfaces() {
             let face = model.face(i);
@@ -84,12 +77,10 @@ impl Rasterizer {
                 let v0 = model.vert(face[j]);
                 let v1 = model.vert(face[(j + 1) % 3]);
 
-                let x0 = ((v0.raw[0] + 1.0) * self.width as f32 / 2.0) as i32;
-                let y0 =
-                    (self.height as f32 - ((v0.raw[1] + 1.0) * self.height as f32 / 2.0)) as i32;
-                let x1 = ((v1.raw[0] + 1.0) * self.width as f32 / 2.0) as i32;
-                let y1 =
-                    (self.height as f32 - ((v1.raw[1] + 1.0) * self.height as f32 / 2.0)) as i32;
+                let x0 = ((v0.x + 1.0) * self.width as f32 / 2.0) as i32;
+                let y0 = (self.height as f32 - ((v0.y + 1.0) * self.height as f32 / 2.0)) as i32;
+                let x1 = ((v1.x + 1.0) * self.width as f32 / 2.0) as i32;
+                let y1 = (self.height as f32 - ((v1.y + 1.0) * self.height as f32 / 2.0)) as i32;
 
                 self.draw_line(&Vec2f::new(x0, y0), &Vec2f::new(x1, y1), &0xFFFFFF);
             }
@@ -102,71 +93,51 @@ impl Rasterizer {
         self.draw_line(v2, v0, color);
     }
 
-    pub fn fill_triangle(&mut self, t0: &Vec2f, t1: &Vec2f, v2: &Vec2f, color: &u32) {
-        // Sort vertices by y-coordinate
-        let mut v0 = t0;
-        let mut v1 = t1;
-        let mut v2 = v2;
+    pub fn fill_triangle(&mut self, t0: &Vec2f, t1: &Vec2f, t2: &Vec2f, color: &u32) {
+        let pts = [t0, t1, t2];
+        let bboxmin = Vec2f::new(
+            pts.iter().map(|v| v.x).min().unwrap(),
+            pts.iter().map(|v| v.y).min().unwrap(),
+        );
+        let bboxmax = Vec2f::new(
+            pts.iter().map(|v| v.x).max().unwrap(),
+            pts.iter().map(|v| v.y).max().unwrap(),
+        );
 
-        // Sorting vertices by y-coordinate
-        if v0.y > v1.y {
-            std::mem::swap(&mut v0, &mut v1);
-        }
-        if v0.y > v2.y {
-            std::mem::swap(&mut v0, &mut v2);
-        }
-        if v1.y > v2.y {
-            std::mem::swap(&mut v1, &mut v2);
-        }
+        for x in bboxmin.x..=bboxmax.x {
+            for y in bboxmin.y..=bboxmax.y {
+                let p = Vec2f::new(x, y);
+                let bc_screen = barycentric(&pts, &p);
+                if bc_screen.x < 0.0 || bc_screen.y < 0.0 || bc_screen.z < 0.0 {
+                    continue;
+                }
 
-        let total_height = v2.y - v0.y;
-
-        // Early return if the triangle has no height
-        if total_height == 0 {
-            return;
-        }
-
-        for i in 0..=total_height {
-            let second_half = i > v1.y - v0.y || v1.y == v0.y;
-            let segment_height = if second_half {
-                v2.y - v1.y
-            } else {
-                v1.y - v0.y
-            };
-
-            let alpha = i as f32 / total_height as f32;
-            let beta = if second_half {
-                (i - (v1.y - v0.y)) as f32 / segment_height as f32
-            } else {
-                i as f32 / segment_height as f32
-            };
-
-            let mut a = Vec2f::new(
-                (v0.x as f32 + (v2.x as f32 - v0.x as f32) * alpha) as i32,
-                v0.y + i,
-            );
-
-            let mut b = if second_half {
-                Vec2f::new(
-                    (v1.x as f32 + (v2.x as f32 - v1.x as f32) * beta) as i32,
-                    v1.y + (i - (v1.y - v0.y)),
-                )
-            } else {
-                Vec2f::new(
-                    (v0.x as f32 + (v1.x as f32 - v0.x as f32) * beta) as i32,
-                    v0.y + i,
-                )
-            };
-
-            if a.x > b.x {
-                std::mem::swap(&mut a, &mut b);
-            }
-
-            for j in a.x..=b.x {
-                let p = Vec2f::new(j, a.y);
-                let index = (p.x + p.y * self.width as i32) as usize;
-                self.buffer[index] = *color;
+                if p.x >= 0 && p.x < self.width as i32 && p.y >= 0 && p.y < self.height as i32 {
+                    let index = (p.x + p.y * self.width as i32) as usize;
+                    self.buffer[index] = *color;
+                }
             }
         }
     }
+}
+
+fn barycentric(pts: &[&Vec2f; 3], p: &Vec2f) -> Vec3f {
+    let u = Vec3f::new(
+        (pts[2].x - pts[0].x) as f32,
+        (pts[1].x - pts[0].x) as f32,
+        (pts[0].x - p.x) as f32,
+    )
+    .cross(&Vec3f::new(
+        (pts[2].y - pts[0].y) as f32,
+        (pts[1].y - pts[0].y) as f32,
+        (pts[0].y - p.y) as f32,
+    ));
+
+    // `pts` and `p` have integer values as coordinates
+    // so `abs(u[2])` < 1 means `u[2]` is 0, which means
+    // the triangle is degenerate
+    if u.z.abs() < 1.0 {
+        return Vec3f::new(-1.0, 1.0, 1.0);
+    }
+    Vec3f::new(1.0 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z)
 }

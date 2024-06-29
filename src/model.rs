@@ -2,16 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Vec3f {
-    pub raw: [f32; 3],
-}
-
-impl Vec3f {
-    fn new(x: f32, y: f32, z: f32) -> Vec3f {
-        Vec3f { raw: [x, y, z] }
-    }
-}
+use crate::vecs::vec3::Vec3f;
 
 pub struct Model {
     verts: Vec<Vec3f>,
