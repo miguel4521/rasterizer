@@ -15,20 +15,6 @@ fn main() {
 
         win.rasterizer.draw_wireframe(&model);
 
-        win.rasterizer.draw_triangle(
-            &Vec2i { x: 10, y: 70 },
-            &Vec2i { x: 50, y: 160 },
-            &Vec2i { x: 70, y: 80 },
-            &0xff_ff_ff,
-        );
-
-        win.rasterizer.fill_triangle(
-            &Vec2i { x: 180, y: 50 },
-            &Vec2i { x: 150, y: 1 },
-            &Vec2i { x: 70, y: 180 },
-            &0xff_ff_ff,
-        );
-
         win.update();
     }
 }
