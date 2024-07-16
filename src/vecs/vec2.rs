@@ -12,6 +12,7 @@ impl Vec2i {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Vec2f {
     pub x: f32,
     pub y: f32,

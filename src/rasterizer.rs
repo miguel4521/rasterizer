@@ -1,7 +1,7 @@
 use crate::{
     model,
     vecs::{
-        vec2::{self, Vec2f, Vec2i},
+        vec2::{Vec2f, Vec2i},
         vec3::Vec3f,
     },
 };
@@ -12,6 +12,9 @@ pub struct Rasterizer {
     pub buffer: Vec<u32>,
     pub zbuffer: Vec<f32>,
     light_dir: Vec3f,
+    texture: Option<Vec<u32>>,
+    texture_width: usize,
+    texture_height: usize,
 }
 
 impl Rasterizer {
@@ -27,6 +30,9 @@ impl Rasterizer {
             buffer: vec![0; width * height],
             zbuffer,
             light_dir: Vec3f::new(0.0, 0.0, -1.0), // Default light direction
+            texture: None,
+            texture_width: 0,
+            texture_height: 0,
         }
     }
 
@@ -88,19 +94,21 @@ impl Rasterizer {
         for i in 0..model.nfaces() {
             let face = model.face(i);
             let mut pts = [Vec3f::new(0.0, 0.0, 0.0); 3];
+            let mut tex_coords = [Vec2f::new(0.0, 0.0); 3];
 
             for j in 0..3 {
-                let v = model.vert(face[j]);
+                let v = model.vert(face[j].0);
                 pts[j] = self.world2screen(v);
+                tex_coords[j] = model.texcoord(face[j].1);
             }
 
             let mut world_coords = [Vec3f::new(0.0, 0.0, 0.0); 3];
             for j in 0..3 {
-                world_coords[j] = model.vert(face[j]);
+                world_coords[j] = model.vert(face[j].0);
             }
 
-            let mut n = (world_coords[2] - world_coords[0])
-                .cross(&(world_coords[1] - world_coords[0]));
+            let mut n =
+                (world_coords[2] - world_coords[0]).cross(&(world_coords[1] - world_coords[0]));
             n.normalize();
 
             let intensity = n.dot(&self.light_dir);
@@ -108,12 +116,12 @@ impl Rasterizer {
                 let color = ((intensity * 255.0) as u32) << 16
                     | ((intensity * 255.0) as u32) << 8
                     | (intensity * 255.0) as u32;
-                self.draw_triangle(pts, color);
+                self.draw_triangle(pts, tex_coords, color);
             }
         }
     }
 
-    pub fn draw_triangle(&mut self, pts: [Vec3f; 3], color: u32) {
+    pub fn draw_triangle(&mut self, pts: [Vec3f; 3], tex_coords: [Vec2f; 3], color: u32) {
         let mut bboxmin = Vec2f::new(std::f32::MAX, std::f32::MAX);
         let mut bboxmax = Vec2f::new(std::f32::MIN, std::f32::MIN);
         let clamp = Vec2f::new((self.width - 1) as f32, (self.height - 1) as f32);
@@ -137,14 +145,25 @@ impl Rasterizer {
                 }
 
                 p.z = 0.0;
+                let mut tex_u = 0.0;
+                let mut tex_v = 0.0;
                 for i in 0..3 {
                     p.z += pts[i].z * bc_screen[i];
+                    tex_u += tex_coords[i].x * bc_screen[i];
+                    tex_v += tex_coords[i].y * bc_screen[i];
                 }
 
                 let idx = (x + y * self.width as i32) as usize;
                 if self.zbuffer[idx] < p.z {
                     self.zbuffer[idx] = p.z;
-                    self.buffer[idx] = color;
+                    if let Some(ref texture) = self.texture {
+                        let tex_x = (tex_u * self.texture_width as f32) as usize;
+                        let tex_y = ((1.0 - tex_v) * self.texture_height as f32) as usize;
+                        let tex_idx = tex_x + tex_y * self.texture_width;
+                        self.buffer[idx] = texture[tex_idx];
+                    } else {
+                        self.buffer[idx] = color;
+                    }
                 }
             }
         }
@@ -156,6 +175,12 @@ impl Rasterizer {
             ((-v.y + 1.0) * self.height as f32 / 2.0).round(),
             v.z,
         )
+    }
+
+    pub fn set_texture(&mut self, texture: Option<&Vec<u32>>, width: usize, height: usize) {
+        self.texture = texture.cloned();
+        self.texture_width = width;
+        self.texture_height = height;
     }
 }
 
