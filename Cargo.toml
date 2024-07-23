@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 minifb = "0.27.0"
-image = "0.24.7"
+image = "0.25.1"
+na = "0.32.2"

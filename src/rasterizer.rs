@@ -1,20 +1,18 @@
-use crate::{
-    model,
-    vecs::{
-        vec2::{Vec2f, Vec2i},
-        vec3::Vec3f,
-    },
-};
+use na::{Matrix4, Vector2, Vector3};
+
+use crate::model;
 
 pub struct Rasterizer {
     pub width: usize,
     pub height: usize,
     pub buffer: Vec<u32>,
     pub zbuffer: Vec<f32>,
-    light_dir: Vec3f,
+    light_dir: Vector3<f32>,
     texture: Option<Vec<u32>>,
     texture_width: usize,
     texture_height: usize,
+    view_matrix: Matrix4<f32>,
+    projection_matrix: Matrix4<f32>,
 }
 
 impl Rasterizer {
@@ -29,11 +27,22 @@ impl Rasterizer {
             height,
             buffer: vec![0; width * height],
             zbuffer,
-            light_dir: Vec3f::new(0.0, 0.0, -1.0), // Default light direction
+            light_dir: Vector3::new(0.0, 0.0, -1.0), // Default light direction
             texture: None,
             texture_width: 0,
             texture_height: 0,
+            view_matrix: Matrix4::identity(),
+            projection_matrix: Matrix4::identity(),
         }
+    }
+
+    pub fn set_view_projection(
+        &mut self,
+        view_matrix: Matrix4<f32>,
+        projection_matrix: Matrix4<f32>,
+    ) {
+        self.view_matrix = view_matrix;
+        self.projection_matrix = projection_matrix;
     }
 
     pub fn clear(&mut self) {
@@ -45,7 +54,7 @@ impl Rasterizer {
         }
     }
 
-    pub fn draw_line(&mut self, vec0: &Vec2i, vec1: &Vec2i, color: &u32) {
+    pub fn draw_line(&mut self, vec0: &Vector2<i32>, vec1: &Vector2<i32>, color: &u32) {
         let mut x0 = vec0.x;
         let mut y0 = vec0.y;
         let mut x1 = vec1.x;
@@ -91,25 +100,26 @@ impl Rasterizer {
     }
 
     pub fn draw_wireframe(&mut self, model: &model::Model) {
+        let mvp = self.projection_matrix * self.view_matrix;
+
         for i in 0..model.nfaces() {
             let face = model.face(i);
-            let mut pts = [Vec3f::new(0.0, 0.0, 0.0); 3];
-            let mut tex_coords = [Vec2f::new(0.0, 0.0); 3];
+            let mut pts = [Vector3::new(0.0, 0.0, 0.0); 3];
+            let mut tex_coords = [Vector2::new(0.0, 0.0); 3];
+            let mut world_coords = [Vector3::new(0.0, 0.0, 0.0); 3];
 
             for j in 0..3 {
                 let v = model.vert(face[j].0);
-                pts[j] = self.world2screen(v);
+                let v_homogeneous = v.insert_row(3, 1.0); // Convert to homogeneous coordinates
+                let screen_v = mvp * v_homogeneous; // Apply MVP transformation
+                pts[j] = self.world2screen(screen_v.xyz()); // Convert to screen space
                 tex_coords[j] = model.texcoord(face[j].1);
+                world_coords[j] = v;
             }
 
-            let mut world_coords = [Vec3f::new(0.0, 0.0, 0.0); 3];
-            for j in 0..3 {
-                world_coords[j] = model.vert(face[j].0);
-            }
-
-            let mut n =
-                (world_coords[2] - world_coords[0]).cross(&(world_coords[1] - world_coords[0]));
-            n.normalize();
+            let n = (world_coords[2] - world_coords[0])
+                .cross(&(world_coords[1] - world_coords[0]))
+                .normalize();
 
             let intensity = n.dot(&self.light_dir);
             if intensity > 0.0 {
@@ -121,10 +131,15 @@ impl Rasterizer {
         }
     }
 
-    pub fn draw_triangle(&mut self, pts: [Vec3f; 3], tex_coords: [Vec2f; 3], color: u32) {
-        let mut bboxmin = Vec2f::new(std::f32::MAX, std::f32::MAX);
-        let mut bboxmax = Vec2f::new(std::f32::MIN, std::f32::MIN);
-        let clamp = Vec2f::new((self.width - 1) as f32, (self.height - 1) as f32);
+    pub fn draw_triangle(
+        &mut self,
+        pts: [Vector3<f32>; 3],
+        tex_coords: [Vector2<f32>; 3],
+        color: u32,
+    ) {
+        let mut bboxmin = Vector2::new(std::f32::MAX, std::f32::MAX);
+        let mut bboxmax = Vector2::new(std::f32::MIN, std::f32::MIN);
+        let clamp = Vector2::new((self.width - 1) as f32, (self.height - 1) as f32);
 
         // Calculate bounding box
         for i in 0..3 {
@@ -134,7 +149,7 @@ impl Rasterizer {
             }
         }
 
-        let mut p = Vec3f::new(0.0, 0.0, 0.0);
+        let mut p = Vector3::new(0.0, 0.0, 0.0);
         for x in bboxmin.x as i32..=bboxmax.x as i32 {
             for y in bboxmin.y as i32..=bboxmax.y as i32 {
                 p.x = x as f32;
@@ -169,8 +184,8 @@ impl Rasterizer {
         }
     }
 
-    fn world2screen(&self, v: Vec3f) -> Vec3f {
-        Vec3f::new(
+    fn world2screen(&self, v: Vector3<f32>) -> Vector3<f32> {
+        Vector3::new(
             ((v.x + 1.0) * self.width as f32 / 2.0).round(),
             ((-v.y + 1.0) * self.height as f32 / 2.0).round(),
             v.z,
@@ -184,8 +199,8 @@ impl Rasterizer {
     }
 }
 
-fn barycentric(pts: [Vec3f; 3], p: &Vec3f) -> Vec3f {
-    let mut s = [Vec3f::new(0.0, 0.0, 0.0); 2];
+fn barycentric(pts: [Vector3<f32>; 3], p: &Vector3<f32>) -> Vector3<f32> {
+    let mut s = [Vector3::new(0.0, 0.0, 0.0); 2];
 
     for i in 0..2 {
         s[i].x = pts[2][i] - pts[0][i];
@@ -196,8 +211,8 @@ fn barycentric(pts: [Vec3f; 3], p: &Vec3f) -> Vec3f {
     let u = s[0].cross(&s[1]);
 
     if u.z.abs() > 1e-2 {
-        return Vec3f::new(1.0 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+        return Vector3::new(1.0 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
     }
 
-    Vec3f::new(-1.0, 1.0, 1.0)
+    Vector3::new(-1.0, 1.0, 1.0)
 }

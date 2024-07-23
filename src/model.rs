@@ -3,14 +3,12 @@ use std::io::{self, BufRead};
 use std::str::FromStr;
 
 use image::GenericImageView;
-
-use crate::vecs::vec2::Vec2f;
-use crate::vecs::vec3::Vec3f;
+use {na::Vector2, na::Vector3};
 
 pub struct Model {
-    verts: Vec<Vec3f>,
+    verts: Vec<Vector3<f32>>,
     faces: Vec<Vec<(usize, usize, usize)>>,
-    texcoords: Vec<Vec2f>,
+    texcoords: Vec<Vector2<f32>>,
     texture: Option<Vec<u32>>,
     texture_width: usize,
     texture_height: usize,
@@ -27,7 +25,7 @@ impl Model {
                 let line = line?;
                 if line.starts_with("v ") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    let v = Vec3f::new(
+                    let v = Vector3::new(
                         f32::from_str(parts[1]).unwrap(),
                         f32::from_str(parts[2]).unwrap(),
                         f32::from_str(parts[3]).unwrap(),
@@ -35,7 +33,7 @@ impl Model {
                     verts.push(v);
                 } else if line.starts_with("vt ") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    let vt = Vec2f::new(
+                    let vt = Vector2::new(
                         f32::from_str(parts[1]).unwrap(),
                         f32::from_str(parts[2]).unwrap(),
                     );
@@ -85,7 +83,7 @@ impl Model {
         Ok(())
     }
 
-    pub fn texcoord(&self, idx: usize) -> Vec2f {
+    pub fn texcoord(&self, idx: usize) -> Vector2<f32> {
         self.texcoords[idx]
     }
 
@@ -109,7 +107,7 @@ impl Model {
         &self.faces[idx]
     }
 
-    pub fn vert(&self, i: usize) -> Vec3f {
+    pub fn vert(&self, i: usize) -> Vector3<f32> {
         self.verts[i]
     }
 }
