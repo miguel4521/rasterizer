@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 use crate::{
     camera::{Camera, CameraUniform},
     raster_pass::{ClearPass, RasterBindings, RasterPass},
-    util::{create_output_buffer, dispatch_size, process_gltf_model, v, Uniform, Vertex},
+    util::{dispatch_size, process_gltf_model, v, Uniform, Vertex},
 };
 
 pub struct GPU {
@@ -23,8 +21,6 @@ pub struct GPU {
     pub output_buffer: wgpu::Buffer,
 
     vertices: Vec<Vertex>,
-    #[allow(dead_code)]
-    pub vertex_buffer: wgpu::Buffer,
 
     pub raster_pass: RasterPass,
     pub raster_bindings: RasterBindings,
@@ -80,7 +76,14 @@ impl GPU {
         let raster_pass = RasterPass::new(&device);
         let clear_pass = ClearPass::new(&device);
 
-        let output_buffer = create_output_buffer(&device, width, height);
+        let output_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Pixel Buffer"),
+            size: (width as usize * height as usize * std::mem::size_of::<u32>()) as u64,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
 
         // vec2 pos, float col
         // let vertices = Vec::from([v!(-1., -1., 0.), v!(-1., 1., 0.), v!(1., -1., 0.)]);
@@ -91,7 +94,6 @@ impl GPU {
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_DST
                 | wgpu::BufferUsages::COPY_SRC
-                | wgpu::BufferUsages::UNIFORM,
         });
 
         let depth_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -127,7 +129,6 @@ impl GPU {
             output_buffer,
 
             vertices,
-            vertex_buffer,
 
             raster_pass,
             raster_bindings,

@@ -1,11 +1,7 @@
-use glam::vec3;
+use glam::{vec3, Vec3};
 use pollster::block_on;
 
-use crate::{
-    camera::Camera,
-    gpu,
-    util::{dispatch_size, get_output_buffer_size, Pixel},
-};
+use crate::{camera::Camera, gpu};
 
 pub struct Window {
     window: minifb::Window,
@@ -15,10 +11,10 @@ pub struct Window {
 impl Window {
     pub fn new(width: usize, height: usize) -> Window {
         let camera = Camera::new(
-            1.0,
+            0.5,
+            36.0,
             0.0,
-            0.0,
-            vec3(0.0, 0.0, 40.0),
+            vec3(0.0, -0.5, 0.0),
             width as f32 / height as f32,
         );
 

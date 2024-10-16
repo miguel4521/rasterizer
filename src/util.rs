@@ -2,14 +2,6 @@ use std::io::Read;
 
 use bytemuck::{Pod, Zeroable};
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, Pod, Zeroable)]
-pub struct Pixel {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
-}
-
 #[allow(clippy::iter_nth_zero)]
 pub fn process_gltf_model() -> Vec<Vertex> {
     let (model, buffers, _) = {
@@ -43,28 +35,6 @@ pub(crate) const WORKGROUP_SIZE: u32 = 256;
 pub(crate) const fn dispatch_size(len: u32) -> u32 {
     let subgroup_size = WORKGROUP_SIZE;
     (len + subgroup_size - 1) / subgroup_size
-}
-
-pub fn get_output_buffer_size(width: u32, height: u32) -> u64 {
-    use std::mem::size_of;
-
-    let pixel_size = size_of::<u32>() as u64;
-    let (width, height) = (width as u64, height as u64);
-    width * height * pixel_size
-}
-
-pub fn create_output_buffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Buffer {
-    let pixel_buffer_size = (width as usize * height as usize * std::mem::size_of::<u32>()) as u64; // Calculate the buffer size needed
-
-    // Create a new buffer suitable for storing u32 pixel data and for being bound to a storage buffer
-    let pixel_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("Pixel Buffer"),
-        size: pixel_buffer_size,
-        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-
-    pixel_buffer
 }
 
 #[repr(C)]
@@ -110,6 +80,3 @@ impl From<[f32; 3]> for Vertex {
         v!(v[0], v[1], v[2])
     }
 }
-
-#[allow(dead_code)]
-pub const TRIG: [Vertex; 3] = [v!(0.0, 0.5, 0.0), v!(-0.5, 0.0, 0.0), v!(0.5, 0.0, 0.0)];

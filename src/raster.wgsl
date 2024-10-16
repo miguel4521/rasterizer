@@ -113,11 +113,9 @@ fn clear(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let x = idx % width;
     let y = idx / width;
 
-    let index = idx; // Since idx = x + y * width
-
     // Set color to a default value (e.g., black)
-    pixel_color_buffer.data[index] = rgb(255u, 255u, 255u);
+    pixel_color_buffer.data[idx] = rgb(255u, 255u, 255u);
 
     // Set depth to maximum (1.0)
-    pixel_depth_buffer.depth[index] = 1.0;
+    pixel_depth_buffer.depth[idx] = 1.0;
 }

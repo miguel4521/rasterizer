@@ -6,9 +6,7 @@ use std::time::Instant;
 
 mod camera;
 mod gpu;
-pub mod model;
 mod raster_pass;
-pub mod rasterizer;
 mod util;
 mod window;
 

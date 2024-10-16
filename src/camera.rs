@@ -93,11 +93,13 @@ impl Camera {
 
     fn update(&mut self) {
         let pitch_cos = self.pitch.cos();
+        // This positions the eye based on spherical coordinates conversion
         self.eye = self.zoom
             * Vec3::new(
                 self.yaw.sin() * pitch_cos,
                 self.pitch.sin(),
-                self.yaw.cos() * pitch_cos,
-            );
+                -self.yaw.cos() * pitch_cos, // Use negative for a right-handed coordinate system
+            )
+            + self.target; // Ensure to add the target to offset the camera position correctly
     }
 }
