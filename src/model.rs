@@ -6,7 +6,7 @@ use image::GenericImageView;
 use {na::Vector2, na::Vector3};
 
 pub struct Model {
-    verts: Vec<Vector3<f32>>,
+    pub verts: Vec<Vector3<f32>>,
     faces: Vec<Vec<(usize, usize, usize)>>,
     texcoords: Vec<Vector2<f32>>,
     texture: Option<Vec<u32>>,

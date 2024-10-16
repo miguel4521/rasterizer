@@ -1,13 +1,28 @@
-use crate::rasterizer;
+use glam::vec3;
+use pollster::block_on;
+
+use crate::{
+    camera::Camera,
+    gpu,
+    util::{dispatch_size, get_output_buffer_size, Pixel},
+};
 
 pub struct Window {
     window: minifb::Window,
-    pub rasterizer: rasterizer::Rasterizer,
+    pub gpu: gpu::GPU,
 }
 
 impl Window {
     pub fn new(width: usize, height: usize) -> Window {
-        let rasterizer = rasterizer::Rasterizer::new(width, height);
+        let camera = Camera::new(
+            1.0,
+            0.0,
+            0.0,
+            vec3(0.0, 0.0, 40.0),
+            width as f32 / height as f32,
+        );
+
+        let gpu = block_on(gpu::GPU::new(width as u32, height as u32, camera));
         let window = minifb::Window::new(
             "Minimal Renderer - ESC to exit",
             width,
@@ -18,16 +33,16 @@ impl Window {
             panic!("{}", e);
         });
 
-        Window {
-            rasterizer,
-            window,
-        }
+        Window { gpu, window }
     }
 
-    pub fn update(&mut self) {
+    pub async fn update(&mut self) {
+        let buffer = self.gpu.get_output_buffer_data().await;
+
+        // Update the window with the buffer
         self.window
-            .update_with_buffer(&self.rasterizer.buffer, self.rasterizer.width, self.rasterizer.height)
-            .unwrap();
+            .update_with_buffer(&buffer, self.gpu.width as usize, self.gpu.height as usize)
+            .expect("Failed to update window");
     }
 
     pub fn is_open(&self) -> bool {
