@@ -48,9 +48,9 @@ fn raster(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let clipV2 = camera.view_proj * vec4(v2.x, v2.y, v2.z, 1.0);
 
     // Transform to screen space
-    let screenV0 = vec3((clipV0.x * 0.5 + 0.5) * screen_dims.width, (clipV0.y * -0.5 + 0.5) * screen_dims.height, clipV0.z);
-    let screenV1 = vec3((clipV1.x * 0.5 + 0.5) * screen_dims.width, (clipV1.y * -0.5 + 0.5) * screen_dims.height, clipV1.z);
-    let screenV2 = vec3((clipV2.x * 0.5 + 0.5) * screen_dims.width, (clipV2.y * -0.5 + 0.5) * screen_dims.height, clipV2.z);
+let screenV0 = vec3((clipV0.x * 0.5 + 0.5) * screen_dims.width, (clipV0.y * -0.5 + 0.5) * screen_dims.height, clipV0.z / clipV0.w);
+let screenV1 = vec3((clipV1.x * 0.5 + 0.5) * screen_dims.width, (clipV1.y * -0.5 + 0.5) * screen_dims.height, clipV1.z / clipV1.w);
+let screenV2 = vec3((clipV2.x * 0.5 + 0.5) * screen_dims.width, (clipV2.y * -0.5 + 0.5) * screen_dims.height, clipV2.z / clipV2.w);
 
     // Calculate bounding box for the triangle
     let bboxMin = min(min(screenV0.xy, screenV1.xy), screenV2.xy);
