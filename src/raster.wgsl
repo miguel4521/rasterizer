@@ -48,9 +48,9 @@ fn raster(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let clipV2 = camera.view_proj * vec4(v2.x, v2.y, v2.z, 1.0);
 
     // Transform to screen space
-let screenV0 = vec3((clipV0.x * 0.5 + 0.5) * screen_dims.width, (clipV0.y * -0.5 + 0.5) * screen_dims.height, clipV0.z / clipV0.w);
-let screenV1 = vec3((clipV1.x * 0.5 + 0.5) * screen_dims.width, (clipV1.y * -0.5 + 0.5) * screen_dims.height, clipV1.z / clipV1.w);
-let screenV2 = vec3((clipV2.x * 0.5 + 0.5) * screen_dims.width, (clipV2.y * -0.5 + 0.5) * screen_dims.height, clipV2.z / clipV2.w);
+    let screenV0 = vec3((clipV0.x * 0.5 + 0.5) * screen_dims.width, (clipV0.y * -0.5 + 0.5) * screen_dims.height, clipV0.z / clipV0.w);
+    let screenV1 = vec3((clipV1.x * 0.5 + 0.5) * screen_dims.width, (clipV1.y * -0.5 + 0.5) * screen_dims.height, clipV1.z / clipV1.w);
+    let screenV2 = vec3((clipV2.x * 0.5 + 0.5) * screen_dims.width, (clipV2.y * -0.5 + 0.5) * screen_dims.height, clipV2.z / clipV2.w);
 
     // Calculate bounding box for the triangle
     let bboxMin = min(min(screenV0.xy, screenV1.xy), screenV2.xy);
@@ -60,7 +60,8 @@ let screenV2 = vec3((clipV2.x * 0.5 + 0.5) * screen_dims.width, (clipV2.y * -0.5
     for (var px = max(floor(bboxMin.x), 0.0); px <= min(ceil(bboxMax.x), screen_dims.width - 1.0); px += 1.0) {
         for (var py = max(floor(bboxMin.y), 0.0); py <= min(ceil(bboxMax.y), screen_dims.height - 1.0); py += 1.0) {
             let bcScreen = barycentric(screenV0, screenV1, screenV2, vec2(px, py));
-            if (bcScreen.x >= 0.0 && bcScreen.y >= 0.0 && bcScreen.z >= 0.0) {
+            let mask = step(0.0, bcScreen.x) * step(0.0, bcScreen.y) * step(0.0, bcScreen.z);
+            if (mask == 1.0) {
                 let pixelIndex = u32(px) + u32(py) * u32(screen_dims.width);
                 let z = bcScreen.x * screenV0.z + bcScreen.y * screenV1.z + bcScreen.z * screenV2.z;
 
