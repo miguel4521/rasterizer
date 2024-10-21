@@ -1,4 +1,4 @@
-use glam::{vec3, Vec3};
+use glam::vec3;
 use pollster::block_on;
 
 use crate::{camera::Camera, gpu};

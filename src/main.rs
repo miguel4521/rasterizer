@@ -1,6 +1,5 @@
 use camera::Camera;
 use minifb::Key;
-use na::{Point3, Vector3};
 use pollster::block_on;
 use std::time::Instant;
 
