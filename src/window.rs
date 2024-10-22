@@ -14,7 +14,7 @@ impl Window {
             0.5,
             36.0,
             0.0,
-            vec3(0.0, -0.5, 0.0),
+            vec3(0.0, 0.0, 0.0),
             width as f32 / height as f32,
         );
 

@@ -10,7 +10,7 @@ mod util;
 mod window;
 
 fn main() {
-    let mut win = window::Window::new(800, 800);
+    let mut win = window::Window::new(800, 600);
 
     let mut last_time = Instant::now();
     let mut frame_count = 0;

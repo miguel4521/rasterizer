@@ -3,7 +3,7 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use crate::{
     camera::{Camera, CameraUniform},
     raster_pass::{ClearPass, RasterBindings, RasterPass},
-    util::{dispatch_size, process_gltf_model, v, Uniform, Vertex},
+    util::{dispatch_size, process_gltf_model, process_obj_model, v, Uniform, Vertex},
 };
 
 pub struct GPU {
@@ -87,7 +87,7 @@ impl GPU {
 
         // vec2 pos, float col
         // let vertices = Vec::from([v!(-1., -1., 0.), v!(-1., 1., 0.), v!(1., -1., 0.)]);
-        let vertices = process_gltf_model();
+        let vertices = process_obj_model("assets/african_head.obj");
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),

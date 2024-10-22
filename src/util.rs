@@ -3,9 +3,9 @@ use std::io::Read;
 use bytemuck::{Pod, Zeroable};
 
 #[allow(clippy::iter_nth_zero)]
-pub fn process_gltf_model() -> Vec<Vertex> {
+pub fn process_gltf_model(file: &str) -> Vec<Vertex> {
     let (model, buffers, _) = {
-        let bytes = include_bytes!("../assets/suzanne.glb");
+        let bytes = std::fs::read(file).unwrap();
         gltf::import_slice(bytes).unwrap()
     };
     let mesh = model.meshes().nth(0).unwrap();
@@ -20,9 +20,8 @@ pub fn process_gltf_model() -> Vec<Vertex> {
         .collect()
 }
 
-#[allow(dead_code)]
-pub fn process_obj_model(file: impl Read) -> Vec<Vertex> {
-    obj::ObjData::load_buf(file)
+pub fn process_obj_model(file: &str) -> Vec<Vertex> {
+    obj::ObjData::load_buf(&mut std::fs::File::open(file).unwrap())
         .unwrap()
         .position
         .iter()
